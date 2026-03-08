@@ -137,7 +137,63 @@ def value_iter(grid):
 
 print("\nVALUE FUNCTION")
 
+# POLICY ITERATION - Start from an initial policy and alternate between policy evaluation and policy improvement until convergence
 
+def policy_iter(grid):
+
+    policy_dict = {}
+    for i in range(grid.grid_size):         
+        for j in range(grid.grid_size):
+            s = (i,j)
+            if s in grid.blockers or s == grid.end:
+                continue 
+            policy_dict[s] = grid.agent_actions[0]
+
+    value = {} # value function initialised 
+    # all values in the grid are initialised 
+    for i in range(grid.grid_size):         
+        for j in range(grid.grid_size):
+            value[(i,j)] = 0 
+
+    while True:
+
+        # POLICY EVALUATION 
+        while True:
+            delta = 0   # records the maximum change 
+            new_value = value.copy()        # prevents updating the old dictionary 
+            for s in value:    # skips the goal square and the blockers square 
+                if s in grid.blockers or s == grid.end:
+                    continue
+                action = policy_dict[s]
+                val = 0 
+                for upd_state,p,r in grid.transition_model(s,action):
+                        val += p*(r+grid.gamma_val*value[upd_state])       # Computes Q(s,a)
+
+                new_value[s] = val              # records updated value
+                delta = max (delta, abs(val-value[s])) 
+            value = new_value   # updates value table 
+            if delta<0.0001:  # check if converges
+                break 
+
+        # POLICY IMPROVEMENT
+        policy_stable = True 
+        for s in policy_dict:
+            prev_action = policy_dict[s]
+            best_action = None 
+            best_value = float("-inf")         
+            for a in grid.agent_actions:
+                val = 0     # action value initialised for each action 
+                for upd_state,p,r in grid.transition_model(s,a):    
+                        val += p*(r+grid.gamma_val*value[upd_state])    # Bellman Expectation Calculation 
+                if val > best_value:     # Q-value of the action is compared with the best action found so far
+                    best_value = val
+                    best_action = a         
+            policy_dict[s] = best_action
+            if best_action != prev_action:
+                policy_stable = False
+        if policy_stable:
+            break 
+    return value,policy_dict
 
 # Part 2 Working 
 
@@ -160,6 +216,22 @@ def pt2_gridworld():
             else:
                 row_grid += " "+ policy.get(state,".")[:1] + " "    # return optimal action for the state
         print(row_grid)     # displays the row 
+    
+    print("\nPOLICY ITERATION")
+    val_pi,priority_pi = policy_iter(env_gridworld)
+
+    for j in reversed(range(env_gridworld.grid_size)):    # Top row is printed 
+        row_grid = ""       # empty row string 
+        for i in range(env_gridworld.grid_size):         # left to right across th grid 
+            state = (i,j)  # current state
+            if state in env_gridworld.blockers:     # check for obstacles 
+                row_grid += " X "
+            elif state == env_gridworld.end:        # check for the terminal state
+                row_grid += " G "
+            else:
+                row_grid += " "+ policy.get(state,".")[:1] + " "    # return optimal action for the state
+        print(row_grid)     # displays the row 
+
 
 if __name__ == "__main__":
     pt2_gridworld()
