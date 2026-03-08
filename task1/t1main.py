@@ -1,5 +1,6 @@
 import json
 import task1
+import task2
 
 
 # Load JSON files
@@ -16,4 +17,8 @@ Dist = json.load(dist)
 print("Task 1:")
 print()
 task1.UCS("1", "50", G, Dist, Cost)
+
+print("Task 2:")
+print()
+task2.UCS_energy("1", "50", G, Dist, Cost)
 
