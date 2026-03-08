@@ -1,10 +1,10 @@
 import numpy as np 
-import random as r 
+import random as ran
 
 # GRID WORLD 
 
 # Environment set-up
-class gridWorldenv:
+class GridWorldenv:
 
     # Constructor of the environment 
     def __init__(self):
@@ -29,55 +29,137 @@ class gridWorldenv:
         return True     
     
     # Computes next state values in accordance to the action taken 
-    def dir(self,state,dir):
+    def directions(self,state,dirs):
         x,y = state                # extracts coordinates
 
         # Movement of the agent 
-        if dir == "UP":
+        if dirs == "UP":
             upd_state = (x,y+1)
 
-        if dir == "DOWN":
+        elif dirs == "DOWN":
             upd_state = (x,y-1)
 
-        if dir == "RIGHT":
-            upd_state = (x-1,y)
+        elif dirs == "RIGHT":
+            upd_state = (x+1,y)
 
-        if dir == "LEFT":
-            upd_state = (x+1,y)   
+        elif dirs == "LEFT":
+            upd_state = (x-1,y)   
 
         # checks if movements hits roadblockers - agent stays in the same state 
         if not self.state_check(upd_state):
             return state 
         
-        return upd_state
+        return upd_state    # returns new state
 
 
     # TRANSITION MODEL - computes the probability of reaching next state from the current state after taking action 
-    def transition_model(self,state,dir):
-        if state == self.end:
+    def transition_model(self,state,dirs):
+        if state == self.end:       # Terminal State -  reached goal 
             return [(state,1,0)]
-        transition_dir = [] 
-        if dir == "UP":
+        transition_dir = []  # stores all the possible outcomes
+
+        # Stochastic Action Model
+        if dirs == "UP":
             move = ["UP","LEFT","RIGHT"]
-        elif dir == "DOWN":
-            move = ["DOWN","LEFT","RIGHT"]
-        elif dir == "LEFT":
+        elif dirs == "DOWN":
+            move = ["DOWN","RIGHT","LEFT"]
+        elif dirs == "LEFT":
             move = ["LEFT","UP","DOWN"]
         else:
-            move = ["UP","LEFT","RIGHT"]
+            move = ["RIGHT","UP","DOWN"]
 
-        prob = [0.8,0.1,0.1]
+        # effect of probabilities on the direction the agent moves
+        probabilities = [0.8,0.1,0.1]
 
+        # computes next state with direction and probability
+        for a,b in zip(move,probabilities):
+            upd_state = self.directions(state,a)
+            
+            # rewards given according to the event
+            if upd_state == self.end:
+                rwd = 10 
+            else:
+                rwd = -1 
 
+            # stores transition
+            transition_dir.append((upd_state,b,rwd))
+        return transition_dir
+    
+# VALUE ITERATION - Computes optimal value function using Bellman optimality equation 
 
+def value_iter(grid):
 
+    value = {} # value function initialised 
+    # all values in the grid are initialised 
+    for i in range(grid.grid_size):         
+        for j in range(grid.grid_size):
+            value[(i,j)] = 0 
+    # convergence threshold 
+    stopping_val = 0.0001
 
+    while True:
+        delta = 0   # records the maximum change 
+        new_value = value.copy()        # prevents updating the old dictionary 
 
+        for s in value:    # skips the goal square and the blockers square 
+            if s in grid.blockers or s == grid.end:
+                continue
+            agent_action_val = []           # stores Q-values 
+            for a in grid.agent_actions:    # loops through actions that can be taken by the agent
+                val = 0 
+                for upd_state,p,r in grid.transition_model(s,a):
+                    val += p*(r+grid.gamma_val*value[upd_state])       # Computes Q(s,a)
+
+                agent_action_val.append(val)
+
+            best_action = max(agent_action_val)     # V(s) = max Q(s,a)
+            new_value[s] = best_action              # records updated value
+            delta = max (delta, abs(best_action-value[s])) 
+        value = new_value   # updates value table 
+        if delta<stopping_val:  # check if converges
+            break 
+    policy_dict = {}    # extracts policy
+    for s in value:
+        if s in grid.blockers or s == grid.end:
+            continue        # invalid states are skipped 
+        best_action = None 
+        best_value = float("-inf")         
+        for a in grid.agent_actions:
+            val = 0     # action value initialised for each action 
+            for upd_state,p,r in grid.transition_model(s,a):    
+                    val += p*(r+grid.gamma_val*value[upd_state])    # Bellman Expectation Calculation 
+            if val > best_value:     # Q-value of the action is compared with the best action found so far
+                best_value = val
+                best_action = a         
+        
+        policy_dict[s] = best_action    # Optimal action is stored 
+    return value,policy_dict
+
+print("\nVALUE FUNCTION")
 
 
 
 # Part 2 Working 
 
 def pt2_gridworld():
-    env_gridworld = pt2_gridworld()
+    env_gridworld = GridWorldenv()         # environment is created 
     print("VALUE ITERATION")
+    value,policy = value_iter(env_gridworld)    # runs the value iteration
+    for j in reversed(range(env_gridworld.grid_size)):
+        for i in range(env_gridworld.grid_size):
+            print(f"{value[(i,j)]:6.2f}", end=" ")
+        print()
+    for j in reversed(range(env_gridworld.grid_size)):    # Top row is printed 
+        row_grid = ""       # empty row string 
+        for i in range(env_gridworld.grid_size):         # left to right across th grid 
+            state = (i,j)  # current state
+            if state in env_gridworld.blockers:     # check for obstacles 
+                row_grid += " X "
+            elif state == env_gridworld.end:        # check for the terminal state
+                row_grid += " G "
+            else:
+                row_grid += " "+ policy.get(state,".")[:1] + " "    # return optimal action for the state
+        print(row_grid)     # displays the row 
+
+if __name__ == "__main__":
+    pt2_gridworld()
