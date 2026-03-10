@@ -1,21 +1,19 @@
 import heapq
 
-ENERGY_BUDGET = 287932
+ENERGY_BUDGET = 287932 # take energy constraints into consideration
 
 
 def UCS_energy(src, goal, G, Dist, Cost):
 
-    pq = []
-    heapq.heappush(pq, (0, 0, [src]))
-    # (distance, energy, path)
+    pq = [] #initialise priority queue
+    heapq.heappush(pq, (0, 0, [src])) #(distance_thus_far, energy_used, path)
 
-    visited = {}  
-    # node -> list of (distance, energy)
+    visited = {}  #node -> list of (distance, energy)
 
     while pq:
 
         distance, energy, path = heapq.heappop(pq)
-        node = path[-1]
+        node = path[-1] # return path with lowest distance
 
         if node == goal:
 
@@ -24,7 +22,7 @@ def UCS_energy(src, goal, G, Dist, Cost):
             print("Total energy cost:", energy)
             return
 
-        for neighbor in G[node]:
+        for neighbor in G[node]: # iterate through all neighbours
 
             edge = node + "," + neighbor
 
@@ -34,24 +32,24 @@ def UCS_energy(src, goal, G, Dist, Cost):
             if new_energy > ENERGY_BUDGET:
                 continue
 
-            dominated = False
+            dominated = False # check and discard if another path to the same node already has lower distance or lower energy
 
-            if neighbor in visited:
+            if neighbor in visited: 
                 for d, e in visited[neighbor]:
                     if new_distance >= d and new_energy >= e:
                         dominated = True
                         break
 
-            if dominated:
+            if dominated: # to help reduce search space
                 continue
 
             new_path = path + [neighbor]
 
-            heapq.heappush(pq, (new_distance, new_energy, new_path))
+            heapq.heappush(pq, (new_distance, new_energy, new_path)) # push into priority queue
 
             if neighbor not in visited:
                 visited[neighbor] = []
 
             visited[neighbor].append((new_distance, new_energy))
 
-    print("No feasible path found")
+    print("No feasible path found") # only if all possible paths exceed energy constraints
