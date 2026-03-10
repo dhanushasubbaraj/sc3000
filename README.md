@@ -41,7 +41,7 @@ Here the agent does not know the transition probabilities. It learns by experien
 3. Estimates state-action values using sampled returns 
 4. Improves policy using E-greedy exploration 
 
-#### Task 3: Q-Learning 
+### Task 3: Q-Learning 
 
 Q-Learning updates after every step and is a fast learning process. It uses temporal difference learning. 
 
