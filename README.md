@@ -25,7 +25,7 @@ Rewards:
 
 ## Tasks Implemented 
 
-### Task 1:
+### Task 1: Value Iteration and Policy Iteration 
 Here the agent knows the transition model. 
 Two algorithms implemented:
 #### Value Iteration 
