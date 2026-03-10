@@ -202,8 +202,12 @@ def episode(grid, policy):
     state = grid.start  # start state of every episode - (0,0)
     steps = 0 
     max_steps = 100 
+    epsilon  = 0.1 
     while state != grid.end and steps<max_steps:    # episode continues until goal is reached 
-        action = policy.get(state,ran.choice(grid.agent_actions)) # if policy exists - follow it, else explore randomly
+        if ran.random() < epsilon:
+            action = ran.choice(grid.agent_actions)
+        else:
+            action = policy.get(state,ran.choice(grid.agent_actions)) # if policy exists - follow it, else explore randomly
         transitions = grid.transition_model(state,action)  # returns possible outcomes [(next_state,probability,reward)]
         
         probabilities = [t[1] for t in transitions]     # extracts probabilities
@@ -231,8 +235,10 @@ def monte_carlo_algorithm(grid,episodes = 5000):
         eps = episode(grid,policy)
         G = 0 # calculates total future reward 
         V = set() # keeps tract of the visited pairs 
+        
+        # ESTIMATING THE STATE ACTION VALUES  USING SAMPLED RETURNS 
         for s,a,r in reversed(eps): # calculates results from the end of the episode backward
-            G = grid.gamma_val*G + r 
+            G = grid.gamma_val*G + r # sample returns
             if (s,a) not in V:  # each pair updated once per episode 
                 results[(s,a)].append(G)
                 Q_sa[(s,a)] = np.mean(results[(s,a)])   
@@ -241,7 +247,10 @@ def monte_carlo_algorithm(grid,episodes = 5000):
                 V.add((s,a))
     return policy 
 
-def q_Learning(grid,episodes=5000,alpha = 0.1,epsilon = 0.3):
+# Q Learning - function teaches the agent how to reach the goal in the grid by learning from experience 
+
+def q_Learning(grid,episodes=5000,alpha = 0.1,epsilon = 0.1):
+    # Tabular Q-Learning - stores expected value of taking action a in state s 
     Q_sa = {}
     policy = {}
     # loops through the grid
@@ -253,29 +262,35 @@ def q_Learning(grid,episodes=5000,alpha = 0.1,epsilon = 0.3):
                 Q_sa[(s,a)] = 0
    # Learning done through the episodes 
     for _ in range(episodes):
-        s = grid.start
+        s = grid.start # agent begins at (0,0)
         steps = 0 
-        while s!=grid.end and steps < 100:
+        while s!=grid.end and steps < 100: # this episode continues until the goal state is reached     
             steps +=1
+
+            # E- greedy Action Selecion 
             if ran.random()<epsilon:
                 action = ran.choice(grid.agent_actions)
             else:
                 action = max(grid.agent_actions,key=lambda a: Q_sa[(s,a)])
-            transitions = grid.transition_model(s,action)  # returns possible outcomes [(next_state,probability,reward)]
-        
+            transitions = grid.transition_model(s,action)  # environment transition - returns possible outcomes [(next_state,probability,reward)]
+
+            # agent samples one outcome 
             probabilities = [t[1] for t in transitions]     # extracts probabilities
             upd_state,p,rwd = ran.choices(transitions, weights = probabilities)[0]  # outcome chosen according to probabilities    
-            max_next_Q = max(Q_sa[(upd_state,a)] for a in grid.agent_actions)
+            max_next_Q = max(Q_sa[(upd_state,a)] for a in grid.agent_actions)   # calculates best future action value 
+
+            # Q Learning update rule 
             Q_sa[(s,action)] += alpha * (rwd +grid.gamma_val *max_next_Q - Q_sa[(s,action)])
-            s = upd_state 
+            s = upd_state # move to next state and continues episode 
+    # After training, convert Q table into policy 
     for i in range(grid.grid_size):
         for j in range(grid.grid_size):
             s = (i,j) # represents the state 
             if s in grid.blockers or s == grid.end:
                 continue 
-            max_action = max(grid.agent_actions,key =lambda a:Q_sa[(s,a)])
+            max_action = max(grid.agent_actions,key =lambda a:Q_sa[(s,a)]) # Chooses the function with the highest Q-value 
             policy[s] = max_action 
-    return policy
+    return policy   # returns optimal policy learned through  Q - learning 
 
 # Part 2 Working 
 
