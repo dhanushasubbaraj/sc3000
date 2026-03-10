@@ -2,9 +2,7 @@
 
 # PART 1: FINDING A SHORTEST PATH WITH AN ENERGY BUDGET 
 
-<!-- task1  -->
-<!-- task2  -->
-<!-- task3  -->
+yet to be added 
 
 
 # PART 2: SOLVING MDP AND REINFORCEMENT LEARNING PROBLEMS USING A GRID WORLD
