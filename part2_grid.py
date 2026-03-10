@@ -51,7 +51,7 @@ class GridWorldenv:
         
         return upd_state    # returns new state
 
-
+    ## TASK 1 
     # TRANSITION MODEL - computes the probability of reaching next state from the current state after taking action 
     def transition_model(self,state,dirs):
         if state == self.end:       # Terminal State -  reached goal 
@@ -195,10 +195,93 @@ def policy_iter(grid):
             break   
     return value,policy_dict
 
+## TASK 2 
+# EPISODE SIMULATION 
+def episode(grid, policy):
+    eps = []            # list of episodes - stored in the format: (state,action,reward)
+    state = grid.start  # start state of every episode - (0,0)
+    steps = 0 
+    max_steps = 100 
+    while state != grid.end and steps<max_steps:    # episode continues until goal is reached 
+        action = policy.get(state,ran.choice(grid.agent_actions)) # if policy exists - follow it, else explore randomly
+        transitions = grid.transition_model(state,action)  # returns possible outcomes [(next_state,probability,reward)]
+        
+        probabilities = [t[1] for t in transitions]     # extracts probabilities
+        upd_state,p,rwd = ran.choices(transitions, weights = probabilities)[0]  # outcome chosen according to probabilities
+        eps.append((state,action,rwd))    # adds to episode history 
+        state = upd_state   
+        steps += 1 
+    return eps      # returns full trajectory
+
+# MONTE CARLO CONTROL ALGORITHM - learns optimal policy using Monte Carlo Learning 
+def monte_carlo_algorithm(grid,episodes = 5000):
+    Q_sa = {} # stores the expected return when taking action a in state s 
+    results = {} # stores all the returns and then average them 
+    policy = {} # stores current policy 
+    # loops through the grid
+    for i in range(grid.grid_size):
+        for j in range(grid.grid_size):
+            s = (i,j) # represents the state 
+            # Loops through the actions
+            for a in grid.agent_actions:
+                Q_sa[(s,a)] = 0
+                results[(s,a)] = []
+    # Learning done through the episodes 
+    for _ in range(episodes):
+        eps = episode(grid,policy)
+        G = 0 # calculates total future reward 
+        V = set() # keeps tract of the visited pairs 
+        for s,a,r in reversed(eps): # calculates results from the end of the episode backward
+            G = grid.gamma_val*G + r 
+            if (s,a) not in V:  # each pair updated once per episode 
+                results[(s,a)].append(G)
+                Q_sa[(s,a)] = np.mean(results[(s,a)])   
+                max_action = max(grid.agent_actions,key = lambda a: Q_sa[(s,a)])    # selects action with highest Q-value
+                policy[s] = max_action  #policy improvement step 
+                V.add((s,a))
+    return policy 
+
+def q_Learning(grid,episodes=5000,alpha = 0.1,epsilon = 0.3):
+    Q_sa = {}
+    policy = {}
+    # loops through the grid
+    for i in range(grid.grid_size):
+        for j in range(grid.grid_size):
+            s = (i,j) # represents the state 
+            # Loops through the actions
+            for a in grid.agent_actions:
+                Q_sa[(s,a)] = 0
+   # Learning done through the episodes 
+    for _ in range(episodes):
+        s = grid.start
+        steps = 0 
+        while s!=grid.end and steps < 100:
+            steps +=1
+            if ran.random()<epsilon:
+                action = ran.choice(grid.agent_actions)
+            else:
+                action = max(grid.agent_actions,key=lambda a: Q_sa[(s,a)])
+            transitions = grid.transition_model(s,action)  # returns possible outcomes [(next_state,probability,reward)]
+        
+            probabilities = [t[1] for t in transitions]     # extracts probabilities
+            upd_state,p,rwd = ran.choices(transitions, weights = probabilities)[0]  # outcome chosen according to probabilities    
+            max_next_Q = max(Q_sa[(upd_state,a)] for a in grid.agent_actions)
+            Q_sa[(s,action)] += alpha * (rwd +grid.gamma_val *max_next_Q - Q_sa[(s,action)])
+            s = upd_state 
+    for i in range(grid.grid_size):
+        for j in range(grid.grid_size):
+            s = (i,j) # represents the state 
+            if s in grid.blockers or s == grid.end:
+                continue 
+            max_action = max(grid.agent_actions,key =lambda a:Q_sa[(s,a)])
+            policy[s] = max_action 
+    return policy
+
 # Part 2 Working 
 
 def pt2_gridworld():
     env_gridworld = GridWorldenv()         # environment is created 
+#TASK 1 
     print("VALUE ITERATION")
     value,policy = value_iter(env_gridworld)    # runs the value iteration
     for j in reversed(range(env_gridworld.grid_size)):
@@ -219,6 +302,11 @@ def pt2_gridworld():
     
     print("\nPOLICY ITERATION")
     val_pi,priority_pi = policy_iter(env_gridworld)
+    print("\nPOLICY ITERATION VALUE FUNCTION")
+    for j in reversed(range(env_gridworld.grid_size)):
+        for i in range(env_gridworld.grid_size):
+            print(f"{val_pi[(i,j)]:6.2f}", end=" ")
+        print()
 
     for j in reversed(range(env_gridworld.grid_size)):    # Top row is printed 
         row_grid = ""       # empty row string 
@@ -229,9 +317,36 @@ def pt2_gridworld():
             elif state == env_gridworld.end:        # check for the terminal state
                 row_grid += " G "
             else:
-                row_grid += " "+ policy.get(state,".")[:1] + " "    # return optimal action for the state
+                row_grid += " "+ priority_pi.get(state,".")[:1] + " "    # return optimal action for the state
+        print(row_grid)     # displays the row 
+# TASK 2 
+    print("\nMONTE CARLO CONTROL")
+    mc = monte_carlo_algorithm(env_gridworld)
+    for j in reversed(range(env_gridworld.grid_size)):    # Top row is printed 
+        row_grid = ""       # empty row string 
+        for i in range(env_gridworld.grid_size):         # left to right across th grid 
+            state = (i,j)  # current state
+            if state in env_gridworld.blockers:     # check for obstacles 
+                row_grid += " X "
+            elif state == env_gridworld.end:        # check for the terminal state
+                row_grid += " G "
+            else:
+                row_grid += " "+ mc.get(state,".")[:1] + " "    # return optimal action for the state
         print(row_grid)     # displays the row 
 
+    print("\nQ Learning")
+    ql = q_Learning(env_gridworld,episodes=10000)
+    for j in reversed(range(env_gridworld.grid_size)):    # Top row is printed 
+        row_grid = ""       # empty row string 
+        for i in range(env_gridworld.grid_size):         # left to right across th grid 
+            state = (i,j)  # current state
+            if state in env_gridworld.blockers:     # check for obstacles 
+                row_grid += " X "
+            elif state == env_gridworld.end:        # check for the terminal state
+                row_grid += " G "
+            else:
+                row_grid += " "+ ql.get(state,".")[:1] + " "    # return optimal action for the state
+        print(row_grid)     # displays the row 
 
 if __name__ == "__main__":
     pt2_gridworld()
