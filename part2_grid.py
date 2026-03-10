@@ -84,7 +84,8 @@ class GridWorldenv:
             # stores transition
             transition_dir.append((upd_state,b,rwd))
         return transition_dir
-    
+
+# TASK 1  
 # VALUE ITERATION - Computes optimal value function using Bellman optimality equation 
 
 def value_iter(grid):
@@ -247,6 +248,7 @@ def monte_carlo_algorithm(grid,episodes = 5000):
                 V.add((s,a))
     return policy 
 
+# TASK 3
 # Q Learning - function teaches the agent how to reach the goal in the grid by learning from experience 
 
 def q_Learning(grid,episodes=5000,alpha = 0.1,epsilon = 0.1):
@@ -348,7 +350,7 @@ def pt2_gridworld():
             else:
                 row_grid += " "+ mc.get(state,".")[:1] + " "    # return optimal action for the state
         print(row_grid)     # displays the row 
-
+# TASK 3 
     print("\nQ Learning")
     ql = q_Learning(env_gridworld,episodes=10000)
     for j in reversed(range(env_gridworld.grid_size)):    # Top row is printed 
