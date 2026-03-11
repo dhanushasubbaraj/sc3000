@@ -16,6 +16,10 @@ Coord = json.load(coord)
 Dist = json.load(dist)
 
 #print results of all tasks
+
+print("Part 1:")
+print()
+
 print("Task 1:")
 print()
 task1.UCS("1", "50", G, Dist, Cost)

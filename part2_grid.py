@@ -136,8 +136,6 @@ def value_iter(grid):
         policy_dict[s] = best_action    # Optimal action is stored 
     return value,policy_dict
 
-print("\nVALUE FUNCTION")
-
 # POLICY ITERATION - Start from an initial policy and alternate between policy evaluation and policy improvement until convergence
 
 def policy_iter(grid):
@@ -299,6 +297,7 @@ def q_Learning(grid,episodes=5000,alpha = 0.1,epsilon = 0.1):
 def pt2_gridworld():
     env_gridworld = GridWorldenv()         # environment is created 
 #TASK 1 
+    print("\nVALUE FUNCTION")
     print("VALUE ITERATION")
     value,policy = value_iter(env_gridworld)    # runs the value iteration
     for j in reversed(range(env_gridworld.grid_size)):
